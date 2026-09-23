@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "id": "doctrine",
+  "version": "${version}",
+  "name": "Doctrine",
+  "description": "A native Vulkan enchantment workbench.",
+  "icon": "assets/doctrine/icon.png",
+  "environment": "client",
+  "license": "LGPL-3.0-or-later",
+  "entrypoints": { "client": ["dev.doctrine.client.DoctrineClient"] },
+  "mixins": ["doctrine.mixins.json"],
+  "depends": { "fabricloader": ">=0.19.5", "minecraft": "${minecraft}", "java": ">=25" },
+  "breaks": { "glowdar": "*" }
+}

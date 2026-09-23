@@ -1,0 +1,16 @@
+build/
+.gradle/
+.research/
+run/
+versions/*/logs/
+GUI_*.md
+native/build-windows/
+native/build-macos/
+native/build*/
+native/**/_deps/
+versions/*/bin/
+dist/
+*.class
+*.jar
+!gradle/wrapper/gradle-wrapper.jar
+.DS_Store

@@ -1,0 +1,84 @@
+<rml>
+<head><title>Doctrine</title><link type="text/rcss" href="workbench.rcss"/></head>
+<body>
+<div class="window">
+  <div class="titlebar">
+    <div class="brand"><span class="mark"><span class="mark-a"/><span class="mark-b"/><span class="mark-c"/></span><span class="wordmark">Doctrine</span><span class="edition">Enchantment Protocol</span></div>
+    <div class="title-actions"><button action="drop" class="quick-command"><span>Run Drops</span><span class="key" id="key-drop">G</span></button><button id="close-button" action="close" class="close"><span>Return to Game</span><span class="key" id="key-toggle">F8</span></button></div>
+  </div>
+  <div class="shell">
+    <div class="sidebar">
+      <div class="sidebar-label">Protocol</div>
+      <button id="tab-recovery" action="tab:recovery" class="nav selected"><span class="nav-dot"/><span>Seed Recovery</span></button>
+      <button id="tab-offers" action="tab:offers" class="nav"><span class="nav-dot"/><span>Table Offers</span></button>
+      <button id="tab-planner" action="tab:planner" class="nav"><span class="nav-dot"/><span>Route Planner</span></button>
+      <div class="sidebar-bottom">
+        <div class="sidebar-label">Shortcuts</div>
+        <button action="recover" class="shortcut shortcut-button"><span>Start Recovery</span><span class="key" id="key-recover">F7</span></button>
+        <button action="drop" class="shortcut shortcut-button"><span>Run Drops</span><span class="key" id="key-drop-sidebar">G</span></button>
+        <div class="shortcut"><span>Planner</span><span class="key" id="key-planner">F9</span></div>
+        <div class="shortcut"><span>Read Table</span><span class="key" id="key-observe">F6</span></div>
+        <div class="shortcut"><span>Cancel Task</span><span class="key" id="key-cancel">F10</span></div>
+        <button action="controls" class="settings">Customize Keybinds</button>
+      </div>
+    </div>
+    <div class="main">
+      <div id="view-recovery">
+        <div class="eyebrow">Player Sequence</div>
+        <h1>Find the pattern.</h1>
+        <p class="intro">A handful of item drops. One verified seed.<br/>Recover the randomness behind your next enchantment.</p>
+        <div class="instrument">
+          <div class="instrument-header"><span>Velocity Observations</span><span id="recovery-count" class="count">0 / 12</span></div>
+          <div class="probes"><div id="probe-0" class="probe"/><div id="probe-1" class="probe"/><div id="probe-2" class="probe"/><div id="probe-3" class="probe"/><div id="probe-4" class="probe"/><div id="probe-5" class="probe"/><div id="probe-6" class="probe"/><div id="probe-7" class="probe"/><div id="probe-8" class="probe"/><div id="probe-9" class="probe"/><div id="probe-10" class="probe validation"/><div id="probe-11" class="probe validation"/></div>
+          <div class="probe-caption"><span>10 recovery samples</span><span>2 validation checks</span></div>
+          <div class="recovery-message"><span class="status-light"/><p id="recovery-status">Hold 12 disposable items to recover your player seed.</p></div>
+        </div>
+        <div class="actions"><button id="start-recovery" action="recover" class="primary">Start Recovery and Return to Game</button><button id="cancel-recovery" action="cancel" class="secondary">Cancel</button></div>
+        <p class="footnote">Doctrine sends one ordered burst across matching inventory stacks, then restores your view and selected slot.</p>
+        <div class="preparation">
+          <div class="instruction"><span class="step">1</span><div><h3>Bring something disposable.</h3><p>Hold one item and keep 12 matching items anywhere in your inventory.</p></div></div>
+          <div class="instruction"><span class="step">2</span><div><h3>Find a quiet spot.</h3><p>Stand still on dry ground, away from other item drops.</p></div></div>
+          <div class="instruction"><span class="step">3</span><div><h3>Stay in the game.</h3><p>Doctrine aims downward, confirms every drop, and returns picked-up items to your inventory.</p></div></div>
+        </div>
+      </div>
+      <div id="view-offers" class="hidden">
+        <div class="eyebrow">Offer Ledger</div>
+        <h1>See the full offer.</h1>
+        <p class="intro" id="status">Open an enchanting table and insert an unenchanted item.</p>
+        <div class="offers">
+          <div class="offer"><span class="offer-number">I</span><div class="offer-content"><div id="cost0" class="offer-cost">First Offer</div><p id="offer0">Place an item in the table.</p></div></div>
+          <div class="offer"><span class="offer-number">II</span><div class="offer-content"><div id="cost1" class="offer-cost">Second Offer</div><p id="offer1">Full results appear once the table seed is known.</p></div></div>
+          <div class="offer"><span class="offer-number">III</span><div class="offer-content"><div id="cost2" class="offer-cost">Third Offer</div><p id="offer2">Swap items to narrow the remaining candidates.</p></div></div>
+        </div>
+        <div class="note"><h3>Recovery without drops.</h3><p>Table costs and clues reveal the current enchantment seed on vanilla and Paper. Two consecutive fresh seeds can recover player RNG only when the server preserves a private player RNG.</p></div>
+        <div class="actions"><button id="read-table" action="observe" class="primary">Read Table Again</button><button action="tab:planner" class="secondary">Open Planner</button></div>
+      </div>
+      <div id="view-planner" class="hidden">
+        <div class="eyebrow">Route Protocol</div>
+        <h1>Make the next one count.</h1>
+        <p class="intro">Choose your result. Find the shortest route to it.</p>
+        <div class="form">
+          <label>Target Item</label><input id="item" type="text" value="minecraft:diamond_pickaxe" maxlength="128"/>
+          <label>Required Enchantments</label><input id="wanted" type="text" value="efficiency:4,unbreaking:3" maxlength="512"/>
+          <p class="field-help">Separate requirements with commas. Levels are minimums.</p>
+          <div class="form-row"><div><label>Maximum Drops</label><input id="max-drops" type="text" value="2048" maxlength="5"/></div><div><label>Available Levels</label><input id="levels" type="text" value="30" maxlength="3"/></div></div>
+          <div class="actions"><button id="search-route" action="search" class="primary">Find a Route</button><button action="cancel" class="secondary">Cancel</button></div>
+        </div>
+        <div class="route"><div class="route-header"><h3>Your Route</h3><button id="copy-route" action="copy" class="text-button">Copy</button></div><p id="route">Recover your player seed or table seed to start planning.</p><div class="execute-row"><button id="drop-plan" action="drop" class="primary"><span id="drop-label">Run Planned Drops</span><span class="key">G</span></button><p id="drop-status">Matching stacks are selected automatically, dropped in bursts, and reused after pickup.</p></div></div>
+      </div>
+    </div>
+    <div class="inspector">
+      <div class="inspector-heading"><h2>Session</h2><span class="session-dot"/></div>
+      <div class="seed-card"><div class="data-label">Player RNG</div><div id="player-state" class="state-badge">Awaiting Recovery</div><div id="player-seed" class="seed-value">Not recovered</div><p id="tracking" class="muted">Recover from item drops, or observe two fresh enchantment seeds.</p></div>
+      <div class="data-block"><div class="data-label">Table Seed</div><div id="seed" class="data-value">Unknown</div></div>
+      <div class="data-block"><div class="data-label">Candidates</div><div id="candidates" class="data-value">No observation</div></div>
+      <div class="data-block"><div class="data-label">Bookshelves</div><div id="shelves" class="data-value">Not detected</div></div>
+      <div class="data-block"><div class="data-label">Server Behavior</div><div id="server-mode" class="data-value">Detecting server</div></div>
+      <div class="inspector-note">Doctrine clears tracking when an observed action can consume or recreate player RNG.</div>
+      <button id="reset-session" action="reset" class="reset">Reset Session</button>
+    </div>
+  </div>
+  <div class="footer"><span class="activity"><span class="status-light"/><span id="activity">Ready to Observe</span></span><span id="timing">Waiting for a Table</span></div>
+</div>
+</body>
+</rml>

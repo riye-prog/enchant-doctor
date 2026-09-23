@@ -1,0 +1,9 @@
+{
+  "key.category.doctrine.workbench": "Doctrine",
+  "key.doctrine.toggle": "Toggle Workbench",
+  "key.doctrine.recover": "Start Seed Recovery",
+  "key.doctrine.planner": "Open Enchantment Planner",
+  "key.doctrine.cancel": "Cancel Recovery or Drops",
+  "key.doctrine.observe": "Read Enchanting Table",
+  "key.doctrine.drop": "Run Planned Item Drops"
+}
