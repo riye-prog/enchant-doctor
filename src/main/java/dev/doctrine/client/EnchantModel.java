@@ -6,7 +6,9 @@ import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
 import net.minecraft.tags.EnchantmentTags;
 import net.minecraft.util.RandomSource;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.enchantment.Enchantable;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.item.enchantment.EnchantmentHelper;
@@ -28,8 +30,11 @@ public final class EnchantModel {
 
     public record Plan(int drops, int shelves, int slot, int level, boolean dummy, String enchantments) {
         public String describe() {
-            String preparation = dummy ? "Drop " + drops + " individual items, then perform one cheap dummy enchantment.\n" : "Use the current table seed. No dummy enchantment needed.\n";
-            return preparation + "Set " + shelves + " active bookshelves. Choose offer " + (slot + 1) + ".\nRequires level " + level + " and " + (slot + 1) + " lapis.\n" + enchantments;
+            String preparation = dummy ? (drops == 0 ? "Perform one cheap dummy enchantment.\n" : "Drop " + drops + " individual items, then perform one cheap dummy enchantment.\n") : "Use the current table seed. No dummy enchantment needed.\n";
+            return preparation + targetDescription();
+        }
+        public String targetDescription() {
+            return "Set " + shelves + " active bookshelves. Choose offer " + (slot + 1) + ".\nRequires level " + level + " and " + (slot + 1) + " lapis.\n" + enchantments;
         }
     }
 
@@ -63,31 +68,59 @@ public final class EnchantModel {
             return true;
         };
     }
-    public Plan search(Integer currentSeed, OptionalLong playerSeed, Map<String, Integer> wanted, int maxDrops, int availableLevels) {
-        if (currentSeed != null) {
-            Plan direct = find(currentSeed, -1, wanted, availableLevels);
-            if (direct != null) return direct;
-        }
-        if (playerSeed.isEmpty()) return null;
-        Lcg48 throwRandom = new Lcg48(playerSeed.getAsLong());
-        for (int drops = 0; drops <= maxDrops; drops++) {
-            if (Thread.currentThread().isInterrupted()) throw new CancellationException();
-            Lcg48 dummyRandom = new Lcg48(throwRandom.state());
-            Plan plan = find(dummyRandom.nextInt(), drops, wanted, availableLevels - 1);
-            if (plan != null) return plan;
-            throwRandom.advance(4);
+    private record Target(Holder<Enchantment> enchantment, int level) {}
+    static int maximumTablePower(ItemStack item) {
+        Enchantable enchantable = item.get(DataComponents.ENCHANTABLE);
+        return enchantable == null ? 0 : Math.round((30 + 2 * (enchantable.value() / 4)) * 1.15f);
+    }
+    public String unavailableReason(Map<String, Integer> wanted) {
+        int maxPower = maximumTablePower(item);
+        for (var entry : wanted.entrySet()) {
+            var holder = registry.get(net.minecraft.resources.Identifier.parse(entry.getKey())).orElseThrow();
+            if (!enchantments.contains(holder)) return entry.getKey() + " is not available from this enchanting table.";
+            if (holder.value().getMinCost(entry.getValue()) > maxPower)
+                return entry.getKey() + " " + entry.getValue() + " cannot roll directly on this item at an enchanting table.";
         }
         return null;
     }
-    private Plan find(int seed, int drops, Map<String, Integer> wanted, int availableLevels) {
+    public Plan search(Integer currentSeed, OptionalLong playerSeed, Map<String, Integer> wanted, int maxDrops, int availableLevels) {
+        List<Target> targets = wanted.entrySet().stream().map(e -> new Target(
+            registry.get(net.minecraft.resources.Identifier.parse(e.getKey())).orElseThrow(), e.getValue())).toList();
+        if (unavailableReason(wanted) != null) return null;
+        if (currentSeed != null) {
+            Plan direct = find(currentSeed, -1, targets, availableLevels);
+            if (direct != null) return direct;
+        }
+        if (playerSeed.isEmpty()) return null;
+        // A drop advances four calls; each candidate then consumes one call
+        // for the dummy enchant's next table seed.
+        Lcg48 candidate = new Lcg48(playerSeed.getAsLong());
+        for (int drops = 0; drops <= maxDrops; drops++) {
+            if (Thread.currentThread().isInterrupted()) throw new CancellationException();
+            Lcg48 dummyRandom = new Lcg48(candidate.state());
+            Plan plan = find(dummyRandom.nextInt(), drops, targets, availableLevels - 1);
+            if (plan != null) return plan;
+            candidate.advance(4);
+        }
+        return null;
+    }
+    private Plan find(int seed, int drops, List<Target> wanted, int availableLevels) {
+        if (availableLevels < 1) return null;
+        // Costs for different shelves use the same first three RNG draws.
         for (int shelves = 0; shelves <= 15; shelves++) {
             costsRandom.setSeed(seed);
             for (int slot = 0; slot < 3; slot++) {
                 int cost = SeedCandidates.cost(costsRandom, slot, shelves);
                 if (cost == 0 || cost > availableLevels) continue;
                 var result = offer(seed, slot, cost);
-                boolean matches = wanted.entrySet().stream().allMatch(want -> result.stream().anyMatch(enchantment ->
-                    registry.getKey(enchantment.enchantment().value()).toString().equals(want.getKey()) && enchantment.level() >= want.getValue()));
+                boolean matches = true;
+                for (var want : wanted) {
+                    boolean present = false;
+                    for (var enchantment : result) {
+                        if (enchantment.enchantment().equals(want.enchantment()) && enchantment.level() >= want.level()) { present = true; break; }
+                    }
+                    if (!present) { matches = false; break; }
+                }
                 if (matches) return new Plan(Math.max(0, drops), shelves, slot, cost, drops >= 0, describe(result));
             }
         }

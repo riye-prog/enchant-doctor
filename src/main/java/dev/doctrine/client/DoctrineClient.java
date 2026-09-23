@@ -10,12 +10,14 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.inventory.EnchantmentMenu;
-import net.minecraft.world.inventory.AnvilMenu;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.ExperienceOrb;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.NetherPortalBlock;
+import net.minecraft.world.level.block.EndPortalBlock;
+import net.minecraft.world.level.block.EndGatewayBlock;
 import net.minecraft.world.level.block.EnchantingTableBlock;
 import net.minecraft.world.phys.Vec3;
 import java.util.Arrays;
@@ -30,7 +32,6 @@ import org.slf4j.LoggerFactory;
 import net.minecraft.network.protocol.game.ClientboundAddEntityPacket;
 import net.minecraft.network.protocol.game.ClientboundTakeItemEntityPacket;
 import net.minecraft.network.protocol.game.ClientboundRespawnPacket;
-import net.minecraft.network.protocol.game.ClientboundUpdateAdvancementsPacket;
 import net.minecraft.network.chat.Component;
 
 public final class DoctrineClient implements ClientModInitializer {
@@ -71,6 +72,8 @@ public final class DoctrineClient implements ClientModInitializer {
     private ItemStack[] equipment;
     private static final EquipmentSlot[] TRACKED_EQUIPMENT = {EquipmentSlot.HEAD, EquipmentSlot.CHEST, EquipmentSlot.LEGS, EquipmentSlot.FEET, EquipmentSlot.OFFHAND};
     private boolean publishingDirty = true;
+    private int hazardWarningTicks;
+    private String hazardWarning = "";
 
     private record Observation(int reported, int shelves, ItemStack item, int[] costs, int[] clues, int[] levels) {
         boolean same(Observation other) {
@@ -88,15 +91,30 @@ public final class DoctrineClient implements ClientModInitializer {
     public void tableUsed(BlockPos pos) {
         Minecraft client = Minecraft.getInstance();
         if (client.level != null && client.level.getBlockState(pos).is(Blocks.ENCHANTING_TABLE)) table = pos.immutable();
-        else invalidatePlayer("An item was used. Recover a fresh seed pair.");
+    }
+    /** Cancel a known RNG hazard before the client sends it. Sneak to explicitly bypass the guard. */
+    public boolean guard(String action) {
+        if (!trackingPlayerRng()) return false;
+        var player = Minecraft.getInstance().player;
+        if (player != null && player.isShiftKeyDown()) {
+            invalidatePlayer(action + " allowed while sneaking. Recover a fresh seed.");
+            warn("Doctrine: RNG protection bypassed; recover your seed.");
+            return false;
+        }
+        warn("Doctrine blocked " + action + " to protect your player RNG. Sneak to override.");
+        return true;
+    }
+    public void warn(String message) {
+        hazardWarning = message;
+        hazardWarningTicks = 80;
+        showOverlay(message);
+    }
+    public boolean guardCommand(String command) {
+        return RngHazards.killsPlayer(command) && guard("/kill (death recreates the server player)");
     }
     public void enchantRequested(int containerId, int button) {
         var player = Minecraft.getInstance().player;
         if (player == null) return;
-        if (player.containerMenu instanceof AnvilMenu && trackingPlayerRng()) {
-            invalidatePlayer("Using an anvil can consume player RNG.");
-            return;
-        }
         if (!(player.containerMenu instanceof EnchantmentMenu menu) || menu.containerId != containerId || button < 0 || button > 2) return;
         if (menu.costs[button] == 0 || menu.getSlot(0).getItem().isEmpty()) return;
         beforeEnchant = menu.getSlot(0).getItem().copy();
@@ -130,12 +148,8 @@ public final class DoctrineClient implements ClientModInitializer {
             invalidatePlayer("Experience pickup can consume player RNG through mending.");
         fastDrops.pickedUp(packet);
     }
-    public void respawned(ClientboundRespawnPacket packet) { invalidatePlayer("Respawning or changing dimensions recreated the player RNG."); }
-    public void advancementUpdated(ClientboundUpdateAdvancementsPacket packet) {
-        if (trackingPlayerRng()) invalidatePlayer("An advancement update can consume player RNG.");
-    }
-    public void blockBroken() {
-        if (trackingPlayerRng()) invalidatePlayer("Block breaking can consume player RNG through item durability.");
+    public void respawned(ClientboundRespawnPacket packet) {
+        invalidatePlayer("Respawn or dimension transition: verify the server-side player RNG again.");
     }
     private boolean trackingPlayerRng() { return tracker.state().isPresent() || awaitingEnchant || recovery.active() || fastDrops.active(); }
     private void cancel() {
@@ -164,7 +178,9 @@ public final class DoctrineClient implements ClientModInitializer {
     public void tick() {
         Minecraft client = Minecraft.getInstance();
         if (world != client.level) {
+            boolean changedWorld = world != null && client.level != null;
             reset();
+            if (changedWorld) tracker.invalidate("World transition: verify the server player RNG again.");
             world = client.level;
             table = null;
             position = null;
@@ -193,11 +209,31 @@ public final class DoctrineClient implements ClientModInitializer {
         if (equipmentChanged && (tracker.state().isPresent() || awaitingEnchant || recovery.active() || fastDrops.active()))
             invalidatePlayer("Equipping or damaging worn items invalidated player RNG tracking.");
         Vec3 nextPosition = player.position();
-        if (position != null && (player.isUsingItem() || player.isInWater() || player.isOnFire() || player.isSprinting())) {
+        if (position != null && (player.isUsingItem() || player.isInWater() || player.isOnFire())) {
             if (tracker.state().isPresent() || awaitingEnchant || recovery.active()) invalidatePlayer("RNG-consuming player activity invalidated tracking. Recover a fresh seed.");
             else tracker.invalidate("Avoid RNG-consuming activity while recovering consecutive player seeds.");
         }
         position = nextPosition;
+        if (hazardWarningTicks > 0) --hazardWarningTicks;
+        if (trackingPlayerRng() && player.isDeadOrDying()) {
+            invalidatePlayer("Death recreates the server player and resets its RNG. Recover again after respawning.");
+            warn("Doctrine: death reset the player RNG. Recover again after respawning.");
+        }
+        if (trackingPlayerRng() && client.level != null) {
+            BlockPos feet = player.blockPosition();
+            boolean nearPortal = false;
+            for (BlockPos nearby : BlockPos.betweenClosed(feet.offset(-1, -1, -1), feet.offset(1, 1, 1))) {
+                var block = client.level.getBlockState(nearby).getBlock();
+                if (block instanceof NetherPortalBlock || block instanceof EndPortalBlock || block instanceof EndGatewayBlock) {
+                    nearPortal = true;
+                    break;
+                }
+            }
+            if (nearPortal && hazardWarningTicks == 0)
+                warn("Doctrine: portal nearby! Dimension travel may interrupt RNG tracking.");
+            if (player.getHealth() <= 6 && hazardWarningTicks == 0)
+                warn("Doctrine: low health! Death recreates the player RNG; get safe.");
+        }
         boolean recoveryWasActive = recovery.active();
         recovery.tick();
         if (recoveryWasActive && !recovery.active()) showOverlay(recovery.status());
@@ -208,8 +244,8 @@ public final class DoctrineClient implements ClientModInitializer {
         if (dropsCompleted && selectedPlan != null) {
             remainingDrops = 0;
             activity = "Drop sequence completed";
-            route = "Drops completed. Perform one level-one dummy enchantment, then insert your target item.\nSet " + selectedPlan.shelves()
-                + " active bookshelves and choose offer " + (selectedPlan.slot() + 1) + ".\n" + selectedPlan.enchantments();
+            route = "Drops completed. Perform one level-one dummy enchantment, then insert your target item.\n"
+                + selectedPlan.targetDescription();
             showOverlay(fastDrops.status());
         } else if (dropsWereActive && !fastDrops.active()) {
             remainingDrops = 0;
@@ -291,7 +327,7 @@ public final class DoctrineClient implements ClientModInitializer {
                 selectedPlan = result instanceof EnchantModel.Plan plan ? plan : null;
                 remainingDrops = selectedPlan == null ? 0 : selectedPlan.drops();
                 planState = tracker.state();
-                route = selectedPlan != null ? selectedPlan.describe() : "No matching route within these limits. Try a different target or increase the drop limit.";
+                route = selectedPlan != null ? selectedPlan.describe() : "No single-table offer within these limits. Increase the drop limit or choose a different target.";
                 activity = "Search completed in " + elapsedMillis + " ms";
             } else {
                 candidates = (SeedCandidates) result;
@@ -306,9 +342,15 @@ public final class DoctrineClient implements ClientModInitializer {
                 activity = "Observation completed in " + elapsedMillis + " ms";
             }
         } catch (Exception exception) {
-            status = "Search interrupted or failed. Read the table again.";
-            LOGGER.error("Doctrine search failed", exception);
-            observed = null;
+            Throwable cause = exception.getCause();
+            if (searching && cause instanceof IllegalArgumentException) {
+                route = cause.getMessage();
+                activity = "Invalid target";
+            } else {
+                status = "Search interrupted or failed. Read the table again.";
+                LOGGER.error("Doctrine search failed", exception);
+                observed = null;
+            }
         }
         job = null;
         searching = false;
@@ -354,10 +396,12 @@ public final class DoctrineClient implements ClientModInitializer {
             if (wanted.isEmpty()) throw new IllegalArgumentException("Enter at least one enchantment.");
             int maxDrops = Integer.parseInt(NativeUi.value("max-drops").trim());
             int levels = Integer.parseInt(NativeUi.value("levels").trim());
-            if (maxDrops < 0 || maxDrops > 10000 || levels < 1 || levels > 999) throw new IllegalArgumentException("Use 0..10000 drops and 1..999 levels.");
+            if (maxDrops < 0 || maxDrops > 100000 || levels < 1 || levels > 999) throw new IllegalArgumentException("Use 0..100000 drops and 1..999 levels.");
             cancel();
             selectedPlan = null;
             var model = new EnchantModel(registry, item);
+            String impossible = model.unavailableReason(wanted);
+            if (impossible != null) { route = impossible; return; }
             var playerSeed = tracker.state();
             Integer seed = candidates != null && candidates.size() == 1 ? candidates.unique() : null;
             searching = true;
@@ -463,7 +507,8 @@ public final class DoctrineClient implements ClientModInitializer {
     }
 
     private void publishOverlay(net.minecraft.client.player.LocalPlayer player) {
-        String message = recovery.active() ? recovery.status() + "  |  " + DoctrineKeys.label("cancel") + " cancels"
+        String message = hazardWarningTicks > 0 ? hazardWarning
+            : recovery.active() ? recovery.status() + "  |  " + DoctrineKeys.label("cancel") + " cancels"
             : fastDrops.active() ? fastDrops.status() + "  |  " + DoctrineKeys.label("cancel") + " cancels" : "";
         if (message.isEmpty()) {
             lastOverlay = "";

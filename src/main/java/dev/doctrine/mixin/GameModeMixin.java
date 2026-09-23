@@ -17,21 +17,41 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(MultiPlayerGameMode.class)
 public abstract class GameModeMixin {
-    @Inject(method = "useItemOn", at = @At("HEAD"))
+    @Inject(method = "useItemOn", at = @At("HEAD"), cancellable = true)
     private void doctrine$table(LocalPlayer player, InteractionHand hand, BlockHitResult hit, CallbackInfoReturnable<InteractionResult> callback) {
-        DoctrineClient.INSTANCE.tableUsed(hit.getBlockPos());
+        var client = net.minecraft.client.Minecraft.getInstance();
+        if (client.level != null && client.level.getBlockState(hit.getBlockPos()).is(net.minecraft.world.level.block.Blocks.ENCHANTING_TABLE)) {
+            DoctrineClient.INSTANCE.tableUsed(hit.getBlockPos());
+        } else if (!player.getItemInHand(hand).isEmpty() && DoctrineClient.INSTANCE.guard("using an item on a block")) {
+            callback.setReturnValue(InteractionResult.PASS);
+        }
     }
-    @Inject(method = "handleInventoryButtonClick", at = @At("HEAD"))
-    private void doctrine$enchant(int containerId, int button, CallbackInfo callback) { DoctrineClient.INSTANCE.enchantRequested(containerId, button); }
-    @Inject(method = "destroyBlock", at = @At("HEAD"))
-    private void doctrine$blockBreak(BlockPos pos, CallbackInfoReturnable<Boolean> callback) { DoctrineClient.INSTANCE.blockBroken(); }
-    @Inject(method = {"attack", "handleCreativeModeItemAdd", "handleCreativeModeItemDrop"}, at = @At("HEAD"))
-    private void doctrine$otherActivity(CallbackInfo callback) { DoctrineClient.INSTANCE.invalidatePlayer("Inventory or item activity changed player RNG assumptions. Recover a fresh pair."); }
-    @Inject(method = "useItem", at = @At("HEAD"))
-    private void doctrine$use(CallbackInfoReturnable<InteractionResult> callback) { DoctrineClient.INSTANCE.invalidatePlayer("An item was used. Recover a fresh seed pair."); }
-    @Inject(method = "handleContainerInput", at = @At("HEAD"))
+    @Inject(method = "handleInventoryButtonClick", at = @At("HEAD"), cancellable = true)
+    private void doctrine$enchant(int containerId, int button, CallbackInfo callback) {
+        var player = net.minecraft.client.Minecraft.getInstance().player;
+        if (player != null && player.containerMenu instanceof net.minecraft.world.inventory.AnvilMenu
+                && DoctrineClient.INSTANCE.guard("using an anvil")) { callback.cancel(); return; }
+        DoctrineClient.INSTANCE.enchantRequested(containerId, button);
+    }
+    @Inject(method = "destroyBlock", at = @At("HEAD"), cancellable = true)
+    private void doctrine$blockBreak(BlockPos pos, CallbackInfoReturnable<Boolean> callback) {
+        if (DoctrineClient.INSTANCE.guard("block breaking (tool durability)")) callback.setReturnValue(false);
+    }
+    @Inject(method = "attack", at = @At("HEAD"), cancellable = true)
+    private void doctrine$attack(Player player, net.minecraft.world.entity.Entity target, CallbackInfo callback) {
+        if (DoctrineClient.INSTANCE.guard("attacking")) callback.cancel();
+    }
+    @Inject(method = "useItem", at = @At("HEAD"), cancellable = true)
+    private void doctrine$use(CallbackInfoReturnable<InteractionResult> callback) {
+        if (DoctrineClient.INSTANCE.guard("using an item")) callback.setReturnValue(InteractionResult.PASS);
+    }
+    @Inject(method = "handleContainerInput", at = @At("HEAD"), cancellable = true)
     private void doctrine$inventory(int container, int slot, int button, ContainerInput input, Player player, CallbackInfo callback) {
-        if (input == ContainerInput.THROW || slot == -999)
-            DoctrineClient.INSTANCE.invalidatePlayer("An inventory drop changed player RNG. Use the drop key for tracked single-item drops.");
+        if ((input == ContainerInput.THROW || slot == -999)
+                && DoctrineClient.INSTANCE.guard("an untracked inventory drop (use the drop key instead)")) callback.cancel();
+    }
+    @Inject(method = "handleCreativeModeItemDrop", at = @At("HEAD"), cancellable = true)
+    private void doctrine$creativeDrop(CallbackInfo callback) {
+        if (DoctrineClient.INSTANCE.guard("a creative inventory drop")) callback.cancel();
     }
 }

@@ -60,8 +60,8 @@
         <div class="form">
           <label>Target Item</label><input id="item" type="text" value="minecraft:diamond_pickaxe" maxlength="128"/>
           <label>Required Enchantments</label><input id="wanted" type="text" value="efficiency:4,unbreaking:3" maxlength="512"/>
-          <p class="field-help">Separate requirements with commas. Levels are minimums.</p>
-          <div class="form-row"><div><label>Maximum Drops</label><input id="max-drops" type="text" value="2048" maxlength="5"/></div><div><label>Available Levels</label><input id="levels" type="text" value="30" maxlength="3"/></div></div>
+          <p class="field-help">Separate requirements with commas. Levels are minimums. Only one enchanting-table result is searched; no anvil combinations.</p>
+          <div class="form-row"><div><label>Maximum Drops</label><input id="max-drops" type="text" value="2048" maxlength="6"/></div><div><label>Available Levels</label><input id="levels" type="text" value="30" maxlength="3"/></div></div>
           <div class="actions"><button id="search-route" action="search" class="primary">Find a Route</button><button action="cancel" class="secondary">Cancel</button></div>
         </div>
         <div class="route"><div class="route-header"><h3>Your Route</h3><button id="copy-route" action="copy" class="text-button">Copy</button></div><p id="route">Recover your player seed or table seed to start planning.</p><div class="execute-row"><button id="drop-plan" action="drop" class="primary"><span id="drop-label">Run Planned Drops</span><span class="key">G</span></button><p id="drop-status">Matching stacks are selected automatically, dropped in bursts, and reused after pickup.</p></div></div>
