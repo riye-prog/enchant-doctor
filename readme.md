@@ -1,6 +1,6 @@
 # doctrine
 
-a fabric enchantment workbench for minecraft 26.2 and 26.3, built from one source tree with stonecutter. press f8 while playing or while an enchanting table is open.
+a fabric enchantment workbench for minecraft 26.2 and 26.3. press f8 while playing or while an enchanting table is open.
 
 the interface is actual rmlui, loaded through a native library and drawn into minecraft's vulkan command buffer before presentation. the mod forces vulkan at startup, including when the saved graphics preference is opengl. it does not change the saved preference. a client without working vulkan cannot run this mod.
 
