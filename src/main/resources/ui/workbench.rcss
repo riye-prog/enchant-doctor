@@ -62,7 +62,6 @@ p { font-size: 13dp; line-height: 1.6; margin: 0; }
 .primary:hover { background-color: #cdbae9; border-color: #dcccf3; }
 .primary:active { background-color: #a18cbc; }
 .secondary { background-color: #22232b; border-color: #3c3d48; color: #bebcca; }
-.footnote { color: #666875; font-size: 10dp; margin-top: 12dp; }
 .inspector { display: flex; flex-direction: column; width: 214dp; min-width: 214dp; padding: 25dp 21dp; border-left: 1dp #292a31; background-color: #111217; overflow: auto; }
 .inspector-heading { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24dp; }
 .session-dot { width: 5dp; height: 5dp; background-color: #7f9a95; border-radius: 5dp; }

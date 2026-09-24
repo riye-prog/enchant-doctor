@@ -3,12 +3,12 @@
 <body>
 <div class="window">
   <div class="titlebar">
-    <div class="brand"><span class="mark"><span class="mark-a"/><span class="mark-b"/><span class="mark-c"/></span><span class="wordmark">Doctrine</span><span class="edition">Enchantment Protocol</span></div>
+    <div class="brand"><span class="mark"><span class="mark-a"/><span class="mark-b"/><span class="mark-c"/></span><span class="wordmark">Doctrine</span><span class="edition">Enchanting tools</span></div>
     <div class="title-actions"><button action="drop" class="quick-command"><span>Run Drops</span><span class="key" id="key-drop">G</span></button><button id="close-button" action="close" class="close"><span>Return to Game</span><span class="key" id="key-toggle">F8</span></button></div>
   </div>
   <div class="shell">
     <div class="sidebar">
-      <div class="sidebar-label">Protocol</div>
+      <div class="sidebar-label">Tools</div>
       <button id="tab-recovery" action="tab:recovery" class="nav selected"><span class="nav-dot"/><span>Seed Recovery</span></button>
       <button id="tab-offers" action="tab:offers" class="nav"><span class="nav-dot"/><span>Table Offers</span></button>
       <button id="tab-planner" action="tab:planner" class="nav"><span class="nav-dot"/><span>Route Planner</span></button>
@@ -24,39 +24,38 @@
     </div>
     <div class="main">
       <div id="view-recovery">
-        <div class="eyebrow">Player Sequence</div>
-        <h1>Find the pattern.</h1>
-        <p class="intro">A handful of item drops. One verified seed.<br/>Recover the randomness behind your next enchantment.</p>
+        <div class="eyebrow">Player Seed</div>
+        <h1>Recover your seed</h1>
+        <p class="intro">Drop 12 items to find your player seed. You can use it to plan future enchants.</p>
         <div class="instrument">
-          <div class="instrument-header"><span>Velocity Observations</span><span id="recovery-count" class="count">0 / 12</span></div>
+          <div class="instrument-header"><span>Item drops</span><span id="recovery-count" class="count">0 / 12</span></div>
           <div class="probes"><div id="probe-0" class="probe"/><div id="probe-1" class="probe"/><div id="probe-2" class="probe"/><div id="probe-3" class="probe"/><div id="probe-4" class="probe"/><div id="probe-5" class="probe"/><div id="probe-6" class="probe"/><div id="probe-7" class="probe"/><div id="probe-8" class="probe"/><div id="probe-9" class="probe"/><div id="probe-10" class="probe validation"/><div id="probe-11" class="probe validation"/></div>
-          <div class="probe-caption"><span>10 recovery samples</span><span>2 validation checks</span></div>
+          <div class="probe-caption"><span>10 samples</span><span>2 checks</span></div>
           <div class="recovery-message"><span class="status-light"/><p id="recovery-status">Hold 12 disposable items to recover your player seed.</p></div>
         </div>
         <div class="actions"><button id="start-recovery" action="recover" class="primary">Start Recovery and Return to Game</button><button id="cancel-recovery" action="cancel" class="secondary">Cancel</button></div>
-        <p class="footnote">Doctrine sends one ordered burst across matching inventory stacks, then restores your view and selected slot.</p>
         <div class="preparation">
-          <div class="instruction"><span class="step">1</span><div><h3>Bring something disposable.</h3><p>Hold one item and keep 12 matching items anywhere in your inventory.</p></div></div>
-          <div class="instruction"><span class="step">2</span><div><h3>Find a quiet spot.</h3><p>Stand still on dry ground, away from other item drops.</p></div></div>
-          <div class="instruction"><span class="step">3</span><div><h3>Stay in the game.</h3><p>Doctrine aims downward, confirms every drop, and returns picked-up items to your inventory.</p></div></div>
+          <div class="instruction"><span class="step">1</span><div><h3>Bring 12 disposable items</h3><p>Keep stackable, unenchanted items in your inventory.</p></div></div>
+          <div class="instruction"><span class="step">2</span><div><h3>Stand somewhere clear</h3><p>Stay still on dry ground, away from other dropped items.</p></div></div>
+          <div class="instruction"><span class="step">3</span><div><h3>Wait for the drops to finish</h3><p>Your view and selected slot are restored afterward.</p></div></div>
         </div>
       </div>
       <div id="view-offers" class="hidden">
-        <div class="eyebrow">Offer Ledger</div>
-        <h1>See the full offer.</h1>
+        <div class="eyebrow">Enchanting Table</div>
+        <h1>Current offers</h1>
         <p class="intro" id="status">Open an enchanting table and insert an unenchanted item.</p>
         <div class="offers">
           <div class="offer"><span class="offer-number">I</span><div class="offer-content"><div id="cost0" class="offer-cost">First Offer</div><p id="offer0">Place an item in the table.</p></div></div>
           <div class="offer"><span class="offer-number">II</span><div class="offer-content"><div id="cost1" class="offer-cost">Second Offer</div><p id="offer1">Full results appear once the table seed is known.</p></div></div>
           <div class="offer"><span class="offer-number">III</span><div class="offer-content"><div id="cost2" class="offer-cost">Third Offer</div><p id="offer2">Swap items to narrow the remaining candidates.</p></div></div>
         </div>
-        <div class="note"><h3>Recovery without drops.</h3><p>Table costs and clues reveal the current enchantment seed on vanilla and Paper. Two consecutive fresh seeds can recover player RNG only when the server preserves a private player RNG.</p></div>
+        <div class="note"><h3>Using table clues</h3><p>Costs and clues can reveal the current table seed. On vanilla servers, two fresh seeds can also recover your player seed.</p></div>
         <div class="actions"><button id="read-table" action="observe" class="primary">Read Table Again</button><button action="tab:planner" class="secondary">Open Planner</button></div>
       </div>
       <div id="view-planner" class="hidden">
-        <div class="eyebrow">Route Protocol</div>
-        <h1>Make the next one count.</h1>
-        <p class="intro">Choose your result. Find the shortest route to it.</p>
+        <div class="eyebrow">Planner</div>
+        <h1>Find an enchantment</h1>
+        <p class="intro">Enter the item and enchantments you want.</p>
         <div class="form">
           <label>Target Item</label><input id="item" type="text" value="minecraft:diamond_pickaxe" maxlength="128"/>
           <label>Required Enchantments</label><input id="wanted" type="text" value="efficiency:4,unbreaking:3" maxlength="512"/>
@@ -74,7 +73,7 @@
       <div class="data-block"><div class="data-label">Candidates</div><div id="candidates" class="data-value">No observation</div></div>
       <div class="data-block"><div class="data-label">Bookshelves</div><div id="shelves" class="data-value">Not detected</div></div>
       <div class="data-block"><div class="data-label">Server Behavior</div><div id="server-mode" class="data-value">Detecting server</div></div>
-      <div class="inspector-note">Doctrine clears tracking when an observed action can consume or recreate player RNG.</div>
+      <div class="inspector-note">Tracking resets if an action may change your player seed.</div>
       <button id="reset-session" action="reset" class="reset">Reset Session</button>
     </div>
   </div>
