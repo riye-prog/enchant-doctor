@@ -92,8 +92,6 @@ public final class EnchantModel {
             if (direct != null) return direct;
         }
         if (playerSeed.isEmpty()) return null;
-        // A drop advances four calls; each candidate then consumes one call
-        // for the dummy enchant's next table seed.
         Lcg48 candidate = new Lcg48(playerSeed.getAsLong());
         for (int drops = 0; drops <= maxDrops; drops++) {
             if (Thread.currentThread().isInterrupted()) throw new CancellationException();
@@ -106,7 +104,6 @@ public final class EnchantModel {
     }
     private Plan find(int seed, int drops, List<Target> wanted, int availableLevels) {
         if (availableLevels < 1) return null;
-        // Costs for different shelves use the same first three RNG draws.
         for (int shelves = 0; shelves <= 15; shelves++) {
             costsRandom.setSeed(seed);
             for (int slot = 0; slot < 3; slot++) {

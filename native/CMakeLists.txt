@@ -2,8 +2,6 @@ cmake_minimum_required(VERSION 3.24)
 project(doctrine_native LANGUAGES C CXX)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
-# Keep the Windows DLL self-contained instead of requiring users to install the
-# matching Visual C++ runtime alongside Minecraft.
 if(MSVC)
     set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 endif()
@@ -47,7 +45,6 @@ else()
     target_compile_options(doctrine PRIVATE -Wall -Wextra -Wpedantic -Wno-missing-field-initializers)
 endif()
 if(MINGW)
-    # Ship one self-contained DLL; do not require MinGW runtime DLLs beside it.
     target_link_options(doctrine PRIVATE -static -static-libgcc -static-libstdc++)
 endif()
 if(APPLE)

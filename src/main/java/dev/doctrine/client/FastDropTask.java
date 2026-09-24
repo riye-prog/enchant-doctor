@@ -13,9 +13,6 @@ import java.util.Set;
 
 public final class FastDropTask {
     private static final int MAX_PENDING = 128;
-    // A normal dropped item cannot be picked up for 40 ticks. Keeping room for
-    // 40 full bursts avoids collapsing to pickup-speed after the first burst,
-    // while retaining a hard ceiling if pickups stop entirely.
     private static final int MAX_DROPS_PER_TICK = 16;
     private static final int MAX_IN_FLIGHT = MAX_DROPS_PER_TICK * 40;
     private final PlayerSeedTracker tracker;
@@ -124,11 +121,6 @@ public final class FastDropTask {
             cancel("Movement, camera motion, a menu change, or RNG drift interrupted the drop sequence.");
             return;
         }
-        // Item entities can merge or be removed without a take-item packet.
-        // Keeping those stale IDs made the in-flight limiter permanently full,
-        // reducing long runs to roughly one drop whenever an old ID happened
-        // to clear. The add-entity callback runs at TAIL, so confirmed entities
-        // are already present in the client level and can be pruned safely.
         droppedEntities.removeIf(id -> client.level.getEntity(id) == null);
         if (remaining == 0) {
             active = false;
@@ -148,9 +140,6 @@ public final class FastDropTask {
         }
         int issued = 0;
         Set<Integer> usedSlots = new HashSet<>();
-        // Drain the staged stack, then pull the next matching stack from any
-        // hotbar or main-inventory slot. The initially selected slot may be
-        // empty or unrelated; it is only used as the fixed staging position.
         player.setXRot(90);
         player.connection.send(new ServerboundMovePlayerPacket.Rot(lockedYaw, 90, player.onGround(), player.horizontalCollision));
         while (issued < MAX_DROPS_PER_TICK && pending < MAX_PENDING

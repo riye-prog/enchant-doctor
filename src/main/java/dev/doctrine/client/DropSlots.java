@@ -37,9 +37,6 @@ public final class DropSlots {
                 || slot < 0 || slot >= items.size() || !eligible(items.get(slot))) return false;
         int selected = inventory.getSelectedSlot();
         if (slot != selected) {
-            // Move the next eligible stack into one fixed staging slot. The
-            // displaced item is preserved in the source slot and will itself
-            // be selected after the staged stack is exhausted.
             int menuSlot = slot < 9 ? 36 + slot : slot;
             client.gameMode.handleContainerInput(player.inventoryMenu.containerId, menuSlot, selected, ContainerInput.SWAP, player);
         }

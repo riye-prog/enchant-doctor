@@ -92,7 +92,6 @@ public final class DoctrineClient implements ClientModInitializer {
         Minecraft client = Minecraft.getInstance();
         if (client.level != null && client.level.getBlockState(pos).is(Blocks.ENCHANTING_TABLE)) table = pos.immutable();
     }
-    /** Cancel a known RNG hazard before the client sends it. Sneak to explicitly bypass the guard. */
     public boolean guard(String action) {
         if (!trackingPlayerRng()) return false;
         var player = Minecraft.getInstance().player;
