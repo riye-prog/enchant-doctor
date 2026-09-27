@@ -1,6 +1,7 @@
 package dev.doctrine.mixin;
 
 import com.mojang.renderpearl.backend.vulkan.VulkanDevice;
+import com.mojang.renderpearl.backend.vulkan.VulkanCommandEncoder;
 import com.mojang.renderpearl.backend.vulkan.VulkanGpuSurface;
 import dev.doctrine.client.NativeUi;
 import dev.doctrine.client.WorkbenchScreen;
@@ -47,6 +48,15 @@ public abstract class VulkanSurfaceMixin {
             NativeUi.frame(command.address(), swapchainImages.getLong(currentImageIndex), swapchainWidth, swapchainHeight, show, scale);
         }
         return VK12.vkEndCommandBuffer(command);
+    }
+
+    @Redirect(method = "blitFromTexture", at = @At(value = "INVOKE", target = "Lcom/mojang/renderpearl/backend/vulkan/VulkanCommandEncoder;execute(Lorg/lwjgl/vulkan/VkCommandBuffer;)V"))
+    private void doctrine$retire(VulkanCommandEncoder encoder, VkCommandBuffer command) {
+        encoder.execute(command);
+        if (NativeUi.ready()) {
+            long retirement = NativeUi.takeRetirement();
+            if (retirement != 0) encoder.queueForDestroy(() -> NativeUi.releaseRetirement(retirement));
+        }
     }
 
     @Inject(method = "destroySwapchain", at = @At("HEAD"))

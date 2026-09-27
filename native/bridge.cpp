@@ -40,11 +40,11 @@ extern "C" JNIEXPORT void JNICALL Java_dev_doctrine_client_NativeUi_initialize(J
         volkLoadInstance(reinterpret_cast<VkInstance>(instance));
         volkLoadDevice(reinterpret_cast<VkDevice>(device));
         auto assets = string(env, directory);
-        renderer = std::make_unique<Renderer>(reinterpret_cast<VkDevice>(device), reinterpret_cast<VkPhysicalDevice>(physical), static_cast<VkFormat>(format), assets);
+        renderer = std::make_unique<Renderer>(reinterpret_cast<VkInstance>(instance), reinterpret_cast<VkDevice>(device), reinterpret_cast<VkPhysicalDevice>(physical), static_cast<VkFormat>(format), assets);
         Rml::SetSystemInterface(&systemInterface);
         Rml::SetRenderInterface(renderer.get());
         if (!Rml::Initialise()) throw std::runtime_error("RmlUi initialization failed");
-        if (!Rml::LoadFontFace(assets + "/PlexSans.ttf")) throw std::runtime_error("Unable to load Plex Sans");
+        if (!Rml::LoadFontFace(assets + "/Manrope.ttf")) throw std::runtime_error("Unable to load Manrope");
         renderer->begin(width,height);
         ui = std::make_unique<UiController>(assets,width,height,scale);
         ui->warmup();
@@ -98,4 +98,10 @@ extern "C" JNIEXPORT jstring JNICALL Java_dev_doctrine_client_NativeUi_takeClipb
     if (!systemInterface.clipboardChanged) return nullptr;
     systemInterface.clipboardChanged = false;
     return env->NewStringUTF(systemInterface.clipboard.c_str());
+}
+extern "C" JNIEXPORT jlong JNICALL Java_dev_doctrine_client_NativeUi_takeRetirement(JNIEnv*, jclass) {
+    return renderer ? static_cast<jlong>(renderer->takeRetirement()) : 0;
+}
+extern "C" JNIEXPORT void JNICALL Java_dev_doctrine_client_NativeUi_releaseRetirement(JNIEnv*, jclass, jlong id) {
+    if (renderer) renderer->releaseRetirement(static_cast<uint64_t>(id));
 }

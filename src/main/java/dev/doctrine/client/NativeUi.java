@@ -29,7 +29,7 @@ public final class NativeUi {
                 directory = Files.createTempDirectory("doctrine-native-");
                 directory.toFile().deleteOnExit();
                 for (String file : new String[]{library, "ui.vert.spv", "ui.frag.spv"}) extract("/natives/" + os + "-" + arch + "/" + file, file);
-                for (String file : new String[]{"workbench.rml", "workbench.rcss", "PlexSans.ttf"}) extract("/ui/" + file, file);
+                for (String file : new String[]{"workbench.rml", "workbench.rcss", "Manrope.ttf"}) extract("/ui/" + file, file);
                 System.load(directory.resolve(library).toAbsolutePath().toString());
             }
             initialize(instance, physical, device, loader, format, directory.toString(), width, height, scale);
@@ -69,6 +69,8 @@ public final class NativeUi {
     public static native void setClipboard(String text);
     public static native String takeClipboard();
     public static native void resize();
+    public static native long takeRetirement();
+    public static native void releaseRetirement(long id);
     private static native void shutdown();
     private static native void text(String id, String value);
     public static native String value(String id);

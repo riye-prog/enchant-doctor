@@ -54,14 +54,19 @@ void UiController::ProcessEvent(Rml::Event& event) {
     if (!target) return;
     auto action = target->GetAttribute<Rml::String>("action", "");
     if (action.starts_with("tab:")) selectTab(action.substr(4));
-    else if (!action.empty() && actions.size() < 32) actions.push_back(action);
+    else if (!action.empty() && actions.size() < 32) {
+        actions.push_back(action);
+        if (action == "search") selectTab("route");
+    }
 }
 void UiController::selectTab(const std::string& selected) {
-    if (selected != "recovery" && selected != "offers" && selected != "planner") return;
+    if (selected != "recovery" && selected != "offers" && selected != "planner" && selected != "route" && selected != "session" && selected != "shortcuts") return;
     tab = selected;
-    for (const std::string name : {"recovery", "offers", "planner"}) {
+    if (auto* main = element("main-content")) main->SetScrollTop(0);
+    const auto navigationTab = tab == "route" ? "planner" : tab == "shortcuts" ? "session" : tab;
+    for (const std::string name : {"recovery", "offers", "planner", "route", "session", "shortcuts"}) {
         if (auto* view = element("view-" + name)) view->SetProperty("display", name == tab ? "block" : "none");
-        if (auto* button = element("tab-" + name)) button->SetClass("selected", name == tab);
+        if (auto* button = element("tab-" + name)) button->SetClass("selected", name == navigationTab);
     }
 }
 void UiController::resize(int width, int height, float scale) {
@@ -75,12 +80,6 @@ void UiController::show(bool show) {
 }
 void UiController::warmup() {
     show(true);
-    for (const std::string name : {"recovery", "offers", "planner"}) {
-        selectTab(name);
-        context->Update();
-        context->Render();
-    }
-    selectTab("recovery");
     context->Update();
     show(false);
 }

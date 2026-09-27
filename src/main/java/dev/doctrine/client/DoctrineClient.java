@@ -61,7 +61,7 @@ public final class DoctrineClient implements ClientModInitializer {
     private ItemStack beforeEnchant;
     private boolean awaitingEnchant;
     private String status = "Open an enchanting table and insert an unenchanted item.";
-    private String route = "Crack the table seed to search its offers. Recover player RNG to search future seeds.";
+    private String route = "Recover the table seed to inspect current offers, or the player seed to search future enchantments.";
     private String activity = "Ready to observe";
     private EnchantModel.Plan selectedPlan;
     private OptionalLong planState = OptionalLong.empty();
@@ -283,13 +283,20 @@ public final class DoctrineClient implements ClientModInitializer {
         }
         finishJob();
         if (NativeUi.ready()) {
-            for (int i = 0; i < 16; i++) {
-                String action = NativeUi.pollAction();
-                if (action == null) break;
-                action(action);
-            }
+            processUiActions();
             publish();
         }
+    }
+    public void processUiActions() {
+        if (!NativeUi.ready() || Minecraft.getInstance().player == null) return;
+        boolean changed = false;
+        for (int i = 0; i < 16; i++) {
+            String action = NativeUi.pollAction();
+            if (action == null) break;
+            action(action);
+            changed = true;
+        }
+        if (changed) publish();
     }
     private void observe(EnchantmentMenu menu) {
         Minecraft client = Minecraft.getInstance();
@@ -412,11 +419,11 @@ public final class DoctrineClient implements ClientModInitializer {
     }
     private void publish() {
         NativeUi.update("status", status);
-        NativeUi.update("activity", recovery.active() ? "Recovering Player Seed" : activity);
+        NativeUi.update("activity", recovery.active() ? "Recovering player seed" : activity);
         NativeUi.update("tracking", tracker.reason());
         NativeUi.update("server-mode", ServerCompatibility.mode());
         NativeUi.update("recovery-status", recovery.status());
-        NativeUi.update("recovery-count", recovery.progress() + " / 12");
+        NativeUi.update("recovery-count", Integer.toString(recovery.progress()));
         NativeUi.update("player-seed", tracker.state().isPresent() ? String.format("%012X", tracker.state().getAsLong()) : "Not recovered");
         NativeUi.update("player-state", tracker.state().isPresent() ? "Verified" : recovery.active() ? "Recovering" : "Awaiting recovery");
         NativeUi.progress(recovery.progress());

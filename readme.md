@@ -2,7 +2,7 @@
 
 a fabric enchantment workbench for minecraft 26.2 and 26.3. press f8 while playing or while an enchanting table is open.
 
-the interface is actual rmlui, loaded through a native library and drawn into minecraft's vulkan command buffer before presentation. the mod forces vulkan at startup, including when the saved graphics preference is opengl. it does not change the saved preference. a client without working vulkan cannot run this mod.
+the interface is actual rmlui, loaded through a native library and drawn into minecraft's vulkan command buffer before presentation. the renderer supports anti-aliasing, image loading, transformed clipping, layers, masks, gradients, blur, shadows, and color filters. the mod forces vulkan at startup, including when the saved graphics preference is opengl. it does not change the saved preference. a client without working vulkan cannot run this mod.
 
 ## what it does
 
@@ -40,7 +40,7 @@ the behavior was checked against [paper's shared entity random patch](https://gi
 
 use a java 25 jdk and cmake. native compilation needs vulkan development headers and the glslang shader compiler. on macos, the homebrew packages are `cmake`, `vulkan-headers`, `vulkan-loader`, and `glslang`.
 
-on macos or linux, run `sh scripts/build-native.sh`, then `./gradlew :26.2:build :26.3:build`. the native build fetches pinned revisions of rmlui, volk, and freetype and links them statically into the bridge.
+on macos or linux, run `sh scripts/build-native.sh`, then `./gradlew :26.2:build :26.3:build`. the native build fetches pinned revisions of rmlui, volk, freetype, and stb and links them statically into the bridge.
 
 on windows, install the visual studio 2022 c++ build tools and the lunarg vulkan sdk, set `JAVA_HOME` to a java 25 jdk, and open powershell in the project directory. run `powershell -ExecutionPolicy Bypass -File scripts/build-native.ps1`, then `.\gradlew.bat :26.2:build :26.3:build`. the script creates `native/build/package/windows-x86_64/doctrine.dll` (or `windows-arm64` when requested), verifies its shaders, and the gradle build packages it into each mod jar. the windows library uses the static visual c++ runtime, so players do not need to install a matching runtime separately.
 
@@ -52,7 +52,7 @@ stonecutter handles the render package move and item-drop api change between ver
 
 `./gradlew :26.2:test :26.3:test` checks java random equivalence, rejection sampling, rng jump-ahead, 12-drop lattice recovery, candidate masks, fresh-seed tracking, and 75,000 enchantment costs against each version's actual vanilla implementation.
 
-the optional `doctrine_smoke` cmake target renders the real workbench to an offscreen vulkan image. enable its build option through cmake and run ctest from the native build directory. the desktop and compact layouts were rendered on an apple m3, with no rmlui warnings or vulkan validation errors. retained rmlui update and draw-list construction measured about 28 microseconds median in the isolated desktop validation test. that excludes gpu execution, jni, minecraft rendering, and first-open work; it is not an in-game fps guarantee.
+the optional `doctrine_smoke` cmake target renders the real workbench to an offscreen vulkan image. enable its build option through cmake and run ctest from the native build directory. the tests cover desktop, compact, narrow, and high-dpi layouts, plus pixel checks for gradients, images, clipping, shadows, masks, and filters. they also check cached effects, overlapping frames, and gpu target resizing, with no rmlui warnings or vulkan validation errors. at 1280 by 800 on an apple m3, steady ui updates and vulkan recording measured about 0.05 ms median on the cpu and 0.37 ms median on the gpu. these offscreen measurements exclude jni, minecraft rendering, and first-open work; they are not an in-game fps guarantee.
 
 both development clients started with vulkan and prewarmed the native workbench. full end-to-end enchantment manipulation and long multiplayer sessions still need gameplay testing.
 
@@ -60,4 +60,4 @@ both development clients started with vulkan and prewarmed the native workbench.
 
 the enchantment algorithm and constant-time lattice recovery were studied and adapted from [earthcomputer's clientcommands](https://github.com/earthcomputer/clientcommands), revision `554a519c5e8d491abb3a7accca9b485cfeb69e4d`. doctrine is distributed under lgpl-3.0-or-later. attribution and third-party license files are included in the source tree and packaged jar.
 
-the candidate scan uses primitive arrays and a lightweight lcg cost filter. searches share one low-priority worker, cancellation checks, and immutable observations. rmlui retains compiled geometry, updates on the game frame loop, and defers resource destruction until gpu events confirm completion. no frame-by-frame framebuffer readback is used by the mod.
+the candidate scan uses primitive arrays and a lightweight lcg cost filter. searches share one low-priority worker, cancellation checks, and immutable observations. rmlui retains compiled geometry, updates on the game frame loop, and uses minecraft's destruction queue to release resources after their gpu work completes. gpu memory uses pooled allocations, and render targets are reused between frames. button actions are handled immediately when input arrives instead of waiting for the next game tick. no frame-by-frame framebuffer readback is used by the mod.

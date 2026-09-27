@@ -23,15 +23,18 @@ public final class WorkbenchScreen extends Screen {
     @Override public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
         mouseMoved(event.x(), event.y());
         if (NativeUi.ready()) NativeUi.input(1, 0, 0, event.button(), event.modifiers());
+        DoctrineClient.INSTANCE.processUiActions();
         return true;
     }
     @Override public boolean mouseReleased(MouseButtonEvent event) {
         if (NativeUi.ready()) NativeUi.input(2, 0, 0, event.button(), event.modifiers());
+        DoctrineClient.INSTANCE.processUiActions();
         return true;
     }
     @Override public boolean mouseDragged(MouseButtonEvent event, double x, double y) { mouseMoved(event.x(), event.y()); return true; }
     @Override public boolean mouseScrolled(double x, double y, double horizontal, double vertical) {
         if (NativeUi.ready()) NativeUi.input(3, horizontal, vertical, 0, 0);
+        DoctrineClient.INSTANCE.processUiActions();
         return true;
     }
     @Override public boolean keyPressed(KeyEvent event) {
@@ -42,14 +45,17 @@ public final class WorkbenchScreen extends Screen {
             String copied = NativeUi.takeClipboard();
             if (copied != null) minecraft.keyboardHandler.setClipboard(copied);
         }
+        DoctrineClient.INSTANCE.processUiActions();
         return true;
     }
     @Override public boolean keyReleased(KeyEvent event) {
         if (NativeUi.ready()) NativeUi.input(5, 0, 0, event.key(), event.modifiers());
+        DoctrineClient.INSTANCE.processUiActions();
         return true;
     }
     @Override public boolean charTyped(CharacterEvent event) {
         if (NativeUi.ready()) NativeUi.input(6, 0, 0, event.codepoint(), 0);
+        DoctrineClient.INSTANCE.processUiActions();
         return true;
     }
 }

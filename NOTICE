@@ -9,8 +9,12 @@ Doctrine is distributed under LGPL-3.0-or-later; see LICENSE.
 RmlUi is copyright its contributors and distributed under the MIT license.
 volk is copyright Arseny Kapoulkine and distributed under the MIT license.
 Native builds include their license texts alongside the library.
-IBM Plex Sans is distributed under the SIL Open Font License 1.1.
-See src/main/resources/ui/OFL.txt.
+Vulkan Memory Allocator is copyright Advanced Micro Devices, Inc. and
+distributed under the MIT license. See VulkanMemoryAllocator-LICENSE.txt.
+stb image decoding is copyright Sean Barrett and contributors, distributed
+under the MIT license or public domain. See stb-LICENSE.txt.
+Manrope is distributed under the SIL Open Font License 1.1.
+See src/main/resources/ui/Manrope-OFL.txt.
 FreeType is copyright its contributors and distributed under the FreeType License.
 Native distributions include FreeType-LICENSE.txt.
 The Gradle wrapper scripts are copyright © 2015 the original authors and

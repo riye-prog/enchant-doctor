@@ -29,7 +29,7 @@ public final class DropRecovery {
     private float lockedYaw;
     private boolean collecting;
     private boolean issuing;
-    private String status = "Hold 12 disposable items to recover your player seed.";
+    private String status = "Requires 12 stackable, unenchanted items.";
 
     public DropRecovery(ExecutorService worker, PlayerSeedTracker tracker) { this.worker = worker; this.tracker = tracker; }
     public boolean active() { return collecting || solving != null; }

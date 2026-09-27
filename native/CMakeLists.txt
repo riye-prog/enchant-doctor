@@ -24,7 +24,12 @@ endif()
 FetchContent_Declare(rmlui GIT_REPOSITORY https://github.com/mikke89/RmlUi.git GIT_TAG 3045e6e3510425ef2870f7647b3f59d3ae9970f5)
 FetchContent_Declare(volk GIT_REPOSITORY https://github.com/zeux/volk.git GIT_TAG 54fc0d7a72887cbfc5b030d26897b2b40ac53fb8)
 set(VOLK_PULL_IN_VULKAN OFF CACHE BOOL "" FORCE)
-FetchContent_MakeAvailable(rmlui volk)
+FetchContent_Declare(stb GIT_REPOSITORY https://github.com/nothings/stb.git GIT_TAG 2c980bb59875b0d32144a71867fbdebb2f77cd20)
+FetchContent_MakeAvailable(rmlui volk stb)
+add_library(doctrine_dependencies STATIC allocator.cpp)
+target_include_directories(doctrine_dependencies SYSTEM PUBLIC ${rmlui_SOURCE_DIR}/Backends/RmlUi_Vulkan ${stb_SOURCE_DIR})
+target_link_libraries(doctrine_dependencies PUBLIC volk)
+target_compile_definitions(doctrine_dependencies PUBLIC VMA_STATIC_VULKAN_FUNCTIONS=0 VMA_DYNAMIC_VULKAN_FUNCTIONS=1)
 target_include_directories(volk PUBLIC ${Vulkan_INCLUDE_DIRS})
 foreach(stage vert frag)
     add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/ui.${stage}.spv
@@ -38,7 +43,7 @@ if(WIN32)
 endif()
 add_dependencies(doctrine doctrine_shaders)
 target_include_directories(doctrine PRIVATE ${JNI_INCLUDE_DIRS})
-target_link_libraries(doctrine PRIVATE RmlUi::RmlUi volk)
+target_link_libraries(doctrine PRIVATE RmlUi::RmlUi doctrine_dependencies)
 if(MSVC)
     target_compile_options(doctrine PRIVATE /W4)
 else()
@@ -61,19 +66,25 @@ else()
     set(DOCTRINE_ARCH x86_64)
 endif()
 set(PACKAGE_DIR ${CMAKE_CURRENT_BINARY_DIR}/package/${DOCTRINE_PLATFORM}-${DOCTRINE_ARCH})
-add_custom_command(TARGET doctrine POST_BUILD
+add_custom_target(doctrine_package ALL
+    DEPENDS doctrine doctrine_shaders
     COMMAND ${CMAKE_COMMAND} -E make_directory ${PACKAGE_DIR}
     COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:doctrine> ${PACKAGE_DIR}/
     COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_BINARY_DIR}/ui.vert.spv ${CMAKE_CURRENT_BINARY_DIR}/ui.frag.spv ${PACKAGE_DIR}/
     COMMAND ${CMAKE_COMMAND} -E copy ${rmlui_SOURCE_DIR}/LICENSE.txt ${PACKAGE_DIR}/RmlUi-LICENSE.txt
-    COMMAND ${CMAKE_COMMAND} -E copy ${volk_SOURCE_DIR}/LICENSE.md ${PACKAGE_DIR}/volk-LICENSE.txt)
-add_custom_command(TARGET doctrine POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy ${freetype_SOURCE_DIR}/docs/FTL.TXT ${PACKAGE_DIR}/FreeType-LICENSE.txt)
+    COMMAND ${CMAKE_COMMAND} -E copy ${volk_SOURCE_DIR}/LICENSE.md ${PACKAGE_DIR}/volk-LICENSE.txt
+    COMMAND ${CMAKE_COMMAND} -E copy ${freetype_SOURCE_DIR}/docs/FTL.TXT ${PACKAGE_DIR}/FreeType-LICENSE.txt
+    COMMAND ${CMAKE_COMMAND} -E copy ${stb_SOURCE_DIR}/LICENSE ${PACKAGE_DIR}/stb-LICENSE.txt
+    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/licenses/VulkanMemoryAllocator-LICENSE.txt ${PACKAGE_DIR}/VulkanMemoryAllocator-LICENSE.txt)
 option(DOCTRINE_BUILD_SMOKE_TEST "Build the offscreen Vulkan UI test" OFF)
 if(DOCTRINE_BUILD_SMOKE_TEST)
     enable_testing()
     add_executable(doctrine_smoke smoke.cpp renderer.cpp ui.cpp)
     add_dependencies(doctrine_smoke doctrine_shaders)
-    target_link_libraries(doctrine_smoke PRIVATE RmlUi::RmlUi volk)
+    target_compile_definitions(doctrine_smoke PRIVATE DOCTRINE_TEST_ASSETS="${CMAKE_CURRENT_SOURCE_DIR}/tests")
+    target_link_libraries(doctrine_smoke PRIVATE RmlUi::RmlUi doctrine_dependencies)
     add_test(NAME ui_vulkan COMMAND doctrine_smoke ${CMAKE_CURRENT_SOURCE_DIR}/../src/main/resources/ui ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_BINARY_DIR}/workbench.ppm)
+    add_test(NAME ui_compact COMMAND doctrine_smoke ${CMAKE_CURRENT_SOURCE_DIR}/../src/main/resources/ui ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_BINARY_DIR}/compact.ppm 800 600 recovery 1 7)
+    add_test(NAME ui_narrow COMMAND doctrine_smoke ${CMAKE_CURRENT_SOURCE_DIR}/../src/main/resources/ui ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_BINARY_DIR}/narrow.ppm 390 700 planner)
+    add_test(NAME ui_hidpi COMMAND doctrine_smoke ${CMAKE_CURRENT_SOURCE_DIR}/../src/main/resources/ui ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_BINARY_DIR}/hidpi.ppm 2560 1600 recovery 2 12)
 endif()

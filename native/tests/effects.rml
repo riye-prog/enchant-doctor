@@ -1,0 +1,29 @@
+<rml><head><style>
+body { width: 100%; height: 100%; }
+div { display: block; }
+.tile { position: absolute; width: 40px; height: 40px; background-color: #f00; }
+.child { width: 40px; height: 40px; background-color: #f00; }
+</style></head><body>
+<div class="tile" style="left:20px;top:20px;decorator:linear-gradient(to right,#f00,#00f);"/>
+<div class="tile" style="left:80px;top:20px;decorator:radial-gradient(circle,#fff,#000);"/>
+<div class="tile" style="left:140px;top:20px;decorator:conic-gradient(#f00,#0f0,#00f,#f00);"/>
+<div class="tile" style="left:200px;top:20px;decorator:repeating-linear-gradient(to right,#f00 0px,#00f 10px);"/>
+<div class="tile" style="left:20px;top:80px;opacity:0.5;"/>
+<div class="tile" style="left:80px;top:80px;filter:brightness(0.5);"/>
+<div class="tile" style="left:140px;top:80px;filter:invert(1);"/>
+<div class="tile" style="left:200px;top:80px;filter:grayscale(1);"/>
+<div class="tile" style="left:260px;top:80px;border-radius:20px;overflow:hidden;background-color:#0000;transform:rotate(10deg);"><div style="position:absolute;left:-10px;top:-10px;width:60px;height:60px;background-color:#00f;"/></div>
+<div class="tile" style="left:20px;top:140px;filter:blur(4px);"/>
+<div class="tile" style="left:80px;top:140px;background-color:#0f0;box-shadow:6px 6px 6px #000;"/>
+<div class="tile" style="left:140px;top:140px;background-color:#00f;filter:drop-shadow(#000 10px 10px 2px);"/>
+<div class="tile" style="left:200px;top:140px;background-color:#0000;filter:opacity(0.5);"><div class="child" style="filter:opacity(0.5);"/></div>
+<div class="tile" style="left:260px;top:140px;mask-image:linear-gradient(to right,#fff,#0000);"/>
+<img src="pixels.png" style="position:absolute;left:20px;top:200px;width:40px;height:40px;"/>
+<div class="tile" style="left:80px;top:200px;"><div style="width:40px;height:40px;backdrop-filter:invert(1);"/></div>
+<div class="tile" style="left:140px;top:200px;filter:contrast(0);"/>
+<div class="tile" style="left:200px;top:200px;filter:sepia(1);"/>
+<div class="tile" style="left:260px;top:200px;filter:saturate(0);"/>
+<div class="tile" style="left:20px;top:260px;filter:hue-rotate(180deg);"/>
+<div class="tile" style="left:80px;top:260px;filter:opacity(0.5);"/>
+<div class="tile" style="left:140px;top:260px;filter:brightness(0.5) invert(1);"/>
+</body></rml>
