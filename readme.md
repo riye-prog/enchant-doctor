@@ -48,6 +48,14 @@ the mod jars are in `versions/26.2/build/libs/` and `versions/26.3/build/libs/`.
 
 stonecutter handles the render package move and item-drop api change between versions through string replacements; the shared java source needs no version comments.
 
+## release builds
+
+use the `build doctrine release` workflow on github actions. it runs when a version tag or the release build branch is pushed. once the workflow is on the default branch, you can also run it manually from the actions tab. use a tag matching `mod_version` in `gradle.properties`, for example `v0.4.2`.
+
+both native libraries and their shaders are built from the checked-out commit. the workflow tests and packages both minecraft versions, checks the native files inside each jar against the native build outputs, and attests the exact jar files. download `doctrine-release` from the successful run. use the jar for the right minecraft version directly from that artifact, and share the run link, commit, and sha-256 from `provenance.json` with modrinth. keep those same jars and the checksum file on the matching github release if you need them after the workflow artifact expires.
+
+the native dependency revisions and the shader compiler revision are in `[native build configuration](native/CMakeLists.txt)`. the workflow pins its actions and jdk; the runner logs record the hosted build environment. an attestation ties a jar to a build run. it does not say that a separate run on a different runner image will produce identical bytes.
+
 ## verification
 
 `./gradlew :26.2:test :26.3:test` checks java random equivalence, rejection sampling, rng jump-ahead, 12-drop lattice recovery, candidate masks, fresh-seed tracking, and 75,000 enchantment costs against each version's actual vanilla implementation.

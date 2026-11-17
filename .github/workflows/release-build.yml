@@ -1,0 +1,101 @@
+name: Build Doctrine release
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ['v*']
+    branches: ['release-build']
+
+permissions:
+  contents: read
+
+env:
+  JAVA_VERSION: '25.0.3+9.0.LTS'
+
+jobs:
+  native:
+    name: Build ${{ matrix.platform }} native files
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-15
+            platform: macos-arm64
+          - runner: windows-2022
+            platform: windows-x86_64
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+      - name: Build macOS native files and shaders
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          test "$(uname -m)" = arm64
+          xcodebuild -version
+          cmake --version
+          cmake -S native -B native/build -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES=arm64 -DDOCTRINE_PINNED_VULKAN_TOOLS=ON
+          cmake --build native/build --target doctrine_package --parallel 3
+      - name: Build Windows native files and shaders
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          cmake --version
+          cmake -S native -B native/build -G 'Visual Studio 17 2022' -A x64 -DDOCTRINE_PINNED_VULKAN_TOOLS=ON
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          cmake --build native/build --target doctrine_package --config Release --parallel 4
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: native-${{ matrix.platform }}
+          path: native/build/package/${{ matrix.platform }}/
+          if-no-files-found: error
+
+  package:
+    name: Build and verify release JARs
+    needs: native
+    runs-on: macos-15
+    timeout-minutes: 25
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: native-macos-arm64
+          path: native/build/package/macos-arm64
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: native-windows-x86_64
+          path: native/build/package/windows-x86_64
+      - name: Build and test both Minecraft versions
+        shell: bash
+        run: |
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          ./gradlew --no-daemon --no-build-cache :26.2:build :26.3:build
+          python3 scripts/collect-release.py
+      - name: Attest the exact release JARs
+        uses: actions/attest@a1948c3f048ba23858d222213b7c278aabede763
+        with:
+          subject-path: release/*.jar
+          create-storage-record: false
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: doctrine-release
+          path: release/
+          retention-days: 90
+          if-no-files-found: error

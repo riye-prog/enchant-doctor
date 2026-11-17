@@ -7,7 +7,7 @@ if(MSVC)
 endif()
 include(FetchContent)
 find_package(JNI REQUIRED COMPONENTS JVM)
-find_package(Vulkan REQUIRED COMPONENTS glslangValidator)
+option(DOCTRINE_PINNED_VULKAN_TOOLS "Build shaders with pinned Vulkan headers and glslang" OFF)
 set(RMLUI_SAMPLES OFF CACHE BOOL "" FORCE)
 set(RMLUI_TESTS OFF CACHE BOOL "" FORCE)
 set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
@@ -16,25 +16,54 @@ set(FT_DISABLE_BZIP2 ON CACHE BOOL "" FORCE)
 set(FT_DISABLE_PNG ON CACHE BOOL "" FORCE)
 set(FT_DISABLE_HARFBUZZ ON CACHE BOOL "" FORCE)
 set(FT_DISABLE_BROTLI ON CACHE BOOL "" FORCE)
-FetchContent_Declare(freetype GIT_REPOSITORY https://github.com/freetype/freetype.git GIT_TAG 3bd82b5f543bc84ccf2b1d0cdb63b95218099ee6)
+FetchContent_Declare(freetype
+    URL https://codeload.github.com/freetype/freetype/tar.gz/3bd82b5f543bc84ccf2b1d0cdb63b95218099ee6
+    URL_HASH SHA256=03eba5df4bc725d8cb7b9d7e161892d6f01fc48108d557a99841903cb38f1e94)
 FetchContent_MakeAvailable(freetype)
 if(NOT TARGET Freetype::Freetype)
     add_library(Freetype::Freetype ALIAS freetype)
 endif()
-FetchContent_Declare(rmlui GIT_REPOSITORY https://github.com/mikke89/RmlUi.git GIT_TAG 3045e6e3510425ef2870f7647b3f59d3ae9970f5)
-FetchContent_Declare(volk GIT_REPOSITORY https://github.com/zeux/volk.git GIT_TAG 54fc0d7a72887cbfc5b030d26897b2b40ac53fb8)
+FetchContent_Declare(rmlui
+    URL https://codeload.github.com/mikke89/RmlUi/tar.gz/3045e6e3510425ef2870f7647b3f59d3ae9970f5
+    URL_HASH SHA256=13aa43d6144ec567b791f5f633eea4d505640bafdc6953d7d07af903e056d531)
+FetchContent_Declare(volk
+    URL https://codeload.github.com/zeux/volk/tar.gz/54fc0d7a72887cbfc5b030d26897b2b40ac53fb8
+    URL_HASH SHA256=4944450dc3943871a28ce993eaf995309eb29e7000e091309968dba4cd321648)
 set(VOLK_PULL_IN_VULKAN OFF CACHE BOOL "" FORCE)
-FetchContent_Declare(stb GIT_REPOSITORY https://github.com/nothings/stb.git GIT_TAG 2c980bb59875b0d32144a71867fbdebb2f77cd20)
+FetchContent_Declare(stb
+    URL https://codeload.github.com/nothings/stb/tar.gz/2c980bb59875b0d32144a71867fbdebb2f77cd20
+    URL_HASH SHA256=9a955b1b49a4410088a2e0ee2a9c057c3c907d0c1d75454144cb980aca0ba515)
 FetchContent_MakeAvailable(rmlui volk stb)
 add_library(doctrine_dependencies STATIC allocator.cpp)
 target_include_directories(doctrine_dependencies SYSTEM PUBLIC ${rmlui_SOURCE_DIR}/Backends/RmlUi_Vulkan ${stb_SOURCE_DIR})
 target_link_libraries(doctrine_dependencies PUBLIC volk)
 target_compile_definitions(doctrine_dependencies PUBLIC VMA_STATIC_VULKAN_FUNCTIONS=0 VMA_DYNAMIC_VULKAN_FUNCTIONS=1)
+if(DOCTRINE_PINNED_VULKAN_TOOLS)
+    set(BUILD_EXTERNAL OFF CACHE BOOL "" FORCE)
+    set(ENABLE_OPT OFF CACHE BOOL "" FORCE)
+    set(ENABLE_HLSL OFF CACHE BOOL "" FORCE)
+    set(ENABLE_GLSLANG_BINARIES ON CACHE BOOL "" FORCE)
+    set(GLSLANG_TESTS OFF CACHE BOOL "" FORCE)
+    set(GLSLANG_ENABLE_INSTALL OFF CACHE BOOL "" FORCE)
+    FetchContent_Declare(vulkan_headers
+        URL https://codeload.github.com/KhronosGroup/Vulkan-Headers/tar.gz/9a0f3099c8a9607a7c0f3127d8abfdc19a93e8c5
+        URL_HASH SHA256=592b3ce6a64708921de3d639e4ade901596f787b041854bc50efa81f6707d709)
+    FetchContent_Declare(glslang
+        URL https://codeload.github.com/KhronosGroup/glslang/tar.gz/275822a6261ee689aadb1da5f09a0ec2f058685c
+        URL_HASH SHA256=971848a1cc639ce8dc244e778b17efe0f690e32ac398a75e31d1c67ad06d3e0a)
+    FetchContent_MakeAvailable(vulkan_headers glslang)
+    set(Vulkan_INCLUDE_DIRS ${vulkan_headers_SOURCE_DIR}/include)
+    set(doctrine_shader_compiler glslang-standalone)
+else()
+    find_package(Vulkan REQUIRED COMPONENTS glslangValidator)
+    set(doctrine_shader_compiler ${Vulkan_GLSLANG_VALIDATOR_EXECUTABLE})
+endif()
 target_include_directories(volk PUBLIC ${Vulkan_INCLUDE_DIRS})
 foreach(stage vert frag)
     add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/ui.${stage}.spv
-        COMMAND ${Vulkan_GLSLANG_VALIDATOR_EXECUTABLE} -V ${CMAKE_CURRENT_SOURCE_DIR}/shaders/ui.${stage} -o ${CMAKE_CURRENT_BINARY_DIR}/ui.${stage}.spv
-        DEPENDS shaders/ui.${stage})
+        COMMAND ${doctrine_shader_compiler} -V ${CMAKE_CURRENT_SOURCE_DIR}/shaders/ui.${stage} -o ${CMAKE_CURRENT_BINARY_DIR}/ui.${stage}.spv
+        DEPENDS shaders/ui.${stage} ${doctrine_shader_compiler}
+        VERBATIM)
 endforeach()
 add_custom_target(doctrine_shaders DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/ui.vert.spv ${CMAKE_CURRENT_BINARY_DIR}/ui.frag.spv)
 add_library(doctrine SHARED bridge.cpp renderer.cpp ui.cpp)
