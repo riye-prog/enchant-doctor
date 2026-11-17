@@ -19,7 +19,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - runner: macos-15
+          - runner: macos-15-intel
             platform: macos-arm64
           - runner: windows-2022
             platform: windows-x86_64
@@ -37,11 +37,12 @@ jobs:
         if: runner.os == 'macOS'
         shell: bash
         run: |
-          test "$(uname -m)" = arm64
+          uname -m
           xcodebuild -version
           cmake --version
           cmake -S native -B native/build -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES=arm64 -DDOCTRINE_PINNED_VULKAN_TOOLS=ON
           cmake --build native/build --target doctrine_package --parallel 3
+          lipo native/build/package/macos-arm64/libdoctrine.dylib -verify_arch arm64
       - name: Build Windows native files and shaders
         if: runner.os == 'Windows'
         shell: pwsh
@@ -60,7 +61,7 @@ jobs:
   package:
     name: Build and verify release JARs
     needs: native
-    runs-on: macos-15
+    runs-on: windows-2022
     timeout-minutes: 25
     permissions:
       contents: read
@@ -83,11 +84,13 @@ jobs:
           name: native-windows-x86_64
           path: native/build/package/windows-x86_64
       - name: Build and test both Minecraft versions
-        shell: bash
+        shell: pwsh
         run: |
-          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
-          ./gradlew --no-daemon --no-build-cache :26.2:build :26.3:build
-          python3 scripts/collect-release.py
+          if ((git rev-parse HEAD) -ne $env:GITHUB_SHA) { throw 'Source commit mismatch' }
+          .\gradlew.bat --no-daemon --no-build-cache :26.2:build :26.3:build
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python scripts/collect-release.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Attest the exact release JARs
         uses: actions/attest@a1948c3f048ba23858d222213b7c278aabede763
         with:
